@@ -52,7 +52,8 @@ type EventInvolvedObject struct {
 func send_message(e Event, color string) error {
 	api := slack.New(os.Getenv("SLACK_TOKEN"))
 	params := slack.PostMessageParameters{}
-	attachment := slack.Attachment{
+	var attachment slack.Attachment
+	attachment = slack.Attachment{
 		// The fallback message shows in clients such as IRC or OS X notifications.
 		Fallback: e.Message,
 		Fields: []slack.AttachmentField{
@@ -89,10 +90,20 @@ func send_message(e Event, color string) error {
 	}
 
 	// Use a color if provided, otherwise try to guess.
-	if color != "" {
+	if strings.HasPrefix(e.Reason, "Success") || color == "good" {
+		// Override attachement with less verbose output
+		attachment = slack.Attachment{
+			Fallback: e.Message,
+			Fields: []slack.AttachmentField{
+				slack.AttachmentField{
+					Title: "Success",
+					Value:  e.Metadata.Namespace + ": "+ e.Message,
+				},
+			},
+			Color: "good",
+		}
+	} else if color != "" {
 		attachment.Color = color
-	} else if strings.HasPrefix(e.Reason, "Success") {
-		attachment.Color = "good"
 	} else if strings.HasPrefix(e.Reason, "Fail") {
 		attachment.Color = "danger"
 	}
